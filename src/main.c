@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include "sharp8080.h"
+#include "sm83.h"
 
 int main() {
-    sharp8080_t init_state = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    sharp8080_init(init_state);
+    sm83_t init_state = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    sm83_init(init_state);
     return 0;
 }

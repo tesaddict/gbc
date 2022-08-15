@@ -15,4 +15,5 @@ int bus_load(uint8_t *data, size_t data_sz, size_t idx);
 uint8_t bus_read(uint16_t address);
 void bus_write(uint16_t address, uint8_t value);
 uint8_t *bus_ptr();
+void bus_clear();
 #endif

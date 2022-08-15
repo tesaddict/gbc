@@ -2,7 +2,7 @@
 
 static void RunAllTests(void) {
     RUN_TEST_GROUP(Bus);
-    RUN_TEST_GROUP(Sharp8080);
+    RUN_TEST_GROUP(sm83);
 }
 
 int main(int argc, const char * argv[]) {
