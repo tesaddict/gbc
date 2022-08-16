@@ -6,10 +6,6 @@
 #include "bus.h"
 
 #define MAX_MNEMONIC_LEN 10
-#define Z_FLAG_POS 7
-#define N_FLAG_POS 6
-#define H_FLAG_POS 5
-#define C_FLAG_POS 4
 
 typedef struct {
   uint8_t a;
@@ -19,8 +15,12 @@ typedef struct {
   uint8_t e;
   uint8_t h;
   uint8_t l;
-  uint8_t f;
+  bool zf;
+  bool nf;
+  bool hf;
+  bool cf;
   uint16_t pc;
+  uint16_t sp;
 } sm83_t;
 
 typedef enum {
@@ -43,7 +43,7 @@ typedef struct {
 #define CC_NC {DNC,SET,DNC,SET}
 
 typedef enum {
-  CTRL,
+  NOP,
   JRS,
   JRSCOND,
   LDR_DIR,
@@ -61,25 +61,9 @@ typedef struct {
 } sm83_instr_t;
 
 void sm83_init(sm83_t state);
-void sm83_free();
-uint16_t sm83_get_opcode();
+void sm83_clear();
+sm83_t* sm83_get_cpu();
 
 const sm83_instr_t* sm83_decode();
 void sm83_execute();
-uint16_t sm83_get_pc();
-const sm83_t* sm83_get_state();
-sm83_t* sm83_get_modifiable_state();
-
-uint8_t* sm83_get_register_operator_ldr_dir(uint16_t op);
-
-uint8_t sm83_get_register_operand(uint16_t op);
-
-void sm83_z_flag(bool set);
-void sm83_n_flag(bool set);
-void sm83_h_flag(bool set);
-void sm83_c_flag(bool set);
-sm83_cc_table_t sm83_get_flags_as_cc_table();
-void sm83_set_flags_from_cc_table(sm83_cc_table_t cc);
-bool sm83_get_flag_from_pos(uint8_t pos);
-bool sm83_check_condition(sm83_cc_table_t cc);
 #endif

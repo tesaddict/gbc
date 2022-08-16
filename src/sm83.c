@@ -1,32 +1,14 @@
 #include "sm83.h"
 #include "bus.h"
 
-static sm83_t cpu;
-
-void sm83_init(sm83_t state) {
-  cpu = state;
-}
-
-void sm83_wait(uint8_t cycles) {
-  (void) cycles;
-}
-
-void sm83_free() {
-  sm83_t free = {0,0,0,0,0,0,0,0,0x100};
-  cpu = free;
-}
-
-uint16_t sm83_get_opcode() {
-  uint16_t opcode = (uint16_t)bus_read(cpu.pc);
-  return opcode == 0xCB ? (opcode << 8) | bus_read(cpu.pc + 1) : opcode;
-}
+static void sm83_wait(uint8_t cycles);
+static bool sm83_check_condition(sm83_cc_table_t cc);
+static uint8_t* sm83_get_register_operator_ldr_dir(uint16_t op);
+static uint8_t sm83_get_register_operand(uint16_t op);
+static sm83_cc_table_t sm83_get_flags_as_cc_table();
 
 static const sm83_instr_t instr_table[256] = {
-    [0x00] = (sm83_instr_t){0x00, CTRL, 4, 1, CC_DNC, "NOP"},
-    [0x10] = (sm83_instr_t){0x10, CTRL, 4, 1, CC_DNC, "STOP"},
-    [0x76] = (sm83_instr_t){0x76, CTRL, 4, 1, CC_DNC, "HALT"},
-    [0xF3] = (sm83_instr_t){0xF3, CTRL, 4, 1, CC_DNC, "DI"},
-    [0xFB] = (sm83_instr_t){0xFB, CTRL, 4, 1, CC_DNC, "EI"},
+    [0x00] = (sm83_instr_t){0x00, NOP, 4, 1, CC_DNC, "NOP"},
     // JRS
     [0x18] = (sm83_instr_t){0x18, JRS, 12, 2, CC_DNC, "JR_r8"},
     // JRSCOND
@@ -93,10 +75,27 @@ static const sm83_instr_t instr_table[256] = {
     [0x6e] = (sm83_instr_t){0x6e, LDR_IND, 8, 1, CC_DNC, "LDL_HL"},
     [0x7e] = (sm83_instr_t){0x7e, LDR_IND, 8, 1, CC_DNC, "LDA_HL"},
 };
+static sm83_t cpu;
+
+void sm83_init(sm83_t state) {
+  cpu = state;
+}
+
+void sm83_clear() {
+  cpu = (sm83_t){0,0,0,0,0,0,0,false,false,false,false,0x100,0};
+}
+
+sm83_t* sm83_get_cpu() {
+  return &cpu;
+}
+
+static void sm83_wait(uint8_t cycles) {
+  (void) cycles;
+}
 
 const sm83_instr_t* sm83_decode() {
-  uint16_t opcode = sm83_get_opcode();
-  return &instr_table[opcode];
+  uint16_t opcode = (uint16_t)bus_read(cpu.pc);
+  return &instr_table[opcode == 0xCB ? (opcode << 8) | bus_read(cpu.pc + 1) : opcode];
 }
 
 static inline int8_t signed_8(uint16_t address) {
@@ -108,7 +107,7 @@ void sm83_execute() {
   uint8_t cycle_offset = 0;
   bool advance_pc = true;
   switch (instr->type) {
-    case CTRL:
+    case NOP:
       break;
     case JRS:
       cpu.pc += signed_8(cpu.pc+1);
@@ -133,19 +132,7 @@ void sm83_execute() {
   sm83_wait(instr->cycles + cycle_offset);
 }
 
-uint16_t sm83_get_pc() {
-  return cpu.pc;
-}
-
-const sm83_t* sm83_get_state() {
-  return &cpu;
-}
-
-sm83_t* sm83_get_modifiable_state() {
-  return &cpu;
-}
-
-uint8_t* sm83_get_register_operator_ldr_dir(uint16_t op) {
+static uint8_t* sm83_get_register_operator_ldr_dir(uint16_t op) {
   if (op >= 0x40 && op <= 0x47) return &cpu.b;
   if (op >= 0x48 && op <= 0x4f) return &cpu.c;
   if (op >= 0x50 && op <= 0x57) return &cpu.d;
@@ -156,7 +143,7 @@ uint8_t* sm83_get_register_operator_ldr_dir(uint16_t op) {
   return NULL;
 }
 
-uint8_t sm83_get_register_operand(uint16_t op) {
+static uint8_t sm83_get_register_operand(uint16_t op) {
   switch(op % 0x8) {
     case 0x0: return cpu.b;
     case 0x1: return cpu.c;
@@ -170,48 +157,16 @@ uint8_t sm83_get_register_operand(uint16_t op) {
   return 0;
 }
 
-static void sm83_flag_helper(bool set, uint8_t pos) {
-  if (set) cpu.f |= (1 << pos);
-  else cpu.f &= ~(1 << pos);
-}
-
-void sm83_z_flag(bool set) {
-  sm83_flag_helper(set, Z_FLAG_POS);
-}
-
-void sm83_n_flag(bool set) {
-  sm83_flag_helper(set, N_FLAG_POS);
-}
-
-void sm83_h_flag(bool set) {
-  sm83_flag_helper(set, H_FLAG_POS);
-}
-
-void sm83_c_flag(bool set) {
-  sm83_flag_helper(set, C_FLAG_POS);
-}
-
-sm83_cc_table_t sm83_get_flags_as_cc_table() {
+static sm83_cc_table_t sm83_get_flags_as_cc_table() {
   sm83_cc_table_t cc;
-  cc.z = cpu.f & (1 << Z_FLAG_POS) ? SET : CLR;
-  cc.n = cpu.f & (1 << N_FLAG_POS) ? SET : CLR;
-  cc.h = cpu.f & (1 << H_FLAG_POS) ? SET : CLR;
-  cc.c = cpu.f & (1 << C_FLAG_POS) ? SET : CLR;
+  cc.z = cpu.zf ? SET : CLR;
+  cc.n = cpu.nf ? SET : CLR;
+  cc.h = cpu.hf ? SET : CLR;
+  cc.c = cpu.cf ? SET : CLR;
   return cc;
 }
 
-void sm83_set_flags_from_cc_table(sm83_cc_table_t cc) {
-  if (cc.z != DNC) sm83_z_flag(cc.z == SET);
-  if (cc.n != DNC) sm83_n_flag(cc.n == SET);
-  if (cc.h != DNC) sm83_h_flag(cc.h == SET);
-  if (cc.c != DNC) sm83_c_flag(cc.c == SET);
-}
-
-bool sm83_get_flag_from_pos(uint8_t pos) {
-  return cpu.f & (1 << pos);
-}
-
-bool sm83_check_condition(sm83_cc_table_t cc) {
+static bool sm83_check_condition(sm83_cc_table_t cc) {
   sm83_cc_table_t flags = sm83_get_flags_as_cc_table();
   if (cc.z != DNC && cc.z != flags.z) return false;
   if (cc.n != DNC && cc.n != flags.n) return false;
