@@ -2,8 +2,6 @@
 #define _SHARP_8080_H_
 #include <stdint.h>
 #include <stdbool.h>
-#include <assert.h>
-#include "bus.h"
 
 #define MAX_MNEMONIC_LEN 10
 

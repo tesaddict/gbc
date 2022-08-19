@@ -1,5 +1,6 @@
 #include "unity_fixture.h"
 #include "sm83.h"
+#include "bus.h"
 
 uint16_t pc = 0x100;
 static sm83_t *cpu;

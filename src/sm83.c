@@ -1,10 +1,10 @@
 #include "sm83.h"
 #include "bus.h"
 
-static void sm83_wait(uint8_t cycles);
-static bool sm83_check_condition(sm83_cc_table_t cc);
-static uint8_t* sm83_get_register_operator_ldr_dir(uint16_t op);
-static uint8_t sm83_get_register_operand(uint16_t op);
+static void            sm83_wait(uint8_t cycles);
+static bool            sm83_check_condition(sm83_cc_table_t cc);
+static uint8_t*        sm83_get_register_map_ldr(uint16_t op);
+static uint8_t         sm83_get_register_operand(uint16_t op);
 static sm83_cc_table_t sm83_get_flags_as_cc_table();
 
 static const sm83_instr_t instr_table[256] = {
@@ -122,8 +122,7 @@ void sm83_execute() {
       break;
     case LDRDIR:
     case LDRIND:
-      *(sm83_get_register_operator_ldr_dir(instr->opcode)) = 
-        sm83_get_register_operand(instr->opcode);
+      *(sm83_get_register_map_ldr(instr->opcode)) = sm83_get_register_operand(instr->opcode);
       break;
     case ERROR:
       break;
@@ -132,7 +131,7 @@ void sm83_execute() {
   sm83_wait(instr->cycles + cycle_offset);
 }
 
-static uint8_t* sm83_get_register_operator_ldr_dir(uint16_t op) {
+static uint8_t* sm83_get_register_map_ldr(uint16_t op) {
   if (op >= 0x40 && op <= 0x47) return &cpu.b;
   if (op >= 0x48 && op <= 0x4f) return &cpu.c;
   if (op >= 0x50 && op <= 0x57) return &cpu.d;
