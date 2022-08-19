@@ -84,7 +84,7 @@ static bool ldr(uint16_t opcode, uint8_t *dest) {
   return res;
 }
 
-TEST(SM83, SM83_Execute_LDR_DIR) {
+TEST(SM83, SM83_Execute_LDRDIR) {
   // LDB_X
   for (uint16_t i = 0x40; i <= 0x47; ++i) {
     if (i == 0x46) continue;
@@ -120,4 +120,19 @@ TEST(SM83, SM83_Execute_LDR_DIR) {
     if (i == 0x7e) continue;
     TEST_ASSERT(ldr(i, &(cpu->a)));
   }
+}
+
+TEST(SM83, SM83_Execute_LDRIND) {
+  cpu->h = 0xbb;
+  cpu->l = 0xbb;
+  bus_write(0xbbbb, 0xff);
+  TEST_ASSERT(ldr(0x46, &(cpu->b)));
+  TEST_ASSERT(ldr(0x4e, &(cpu->c)));
+  TEST_ASSERT(ldr(0x56, &(cpu->d)));
+  TEST_ASSERT(ldr(0x5e, &(cpu->e)));
+  TEST_ASSERT(ldr(0x66, &(cpu->h)));
+  bus_write(0xffbb, 0xff);
+  TEST_ASSERT(ldr(0x6e, &(cpu->l)));
+  bus_write(0xffff, 0xff);
+  TEST_ASSERT(ldr(0x7e, &(cpu->a)));
 }

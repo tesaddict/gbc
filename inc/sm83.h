@@ -46,8 +46,8 @@ typedef enum {
   NOP,
   JRS,
   JRSCOND,
-  LDR_DIR,
-  LDR_IND,
+  LDRDIR,
+  LDRIND,
   ERROR
 } sm83_type_t;
 
