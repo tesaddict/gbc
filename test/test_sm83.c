@@ -69,14 +69,30 @@ TEST(SM83, SM83_Execute_JRSCOND) {
 static bool ldr(uint16_t opcode, uint8_t *dest) {
   bus_write(pc, opcode);
   switch(opcode % 0x8) {
-    case 0x0: cpu->b = 0xff;
-    case 0x1: cpu->c = 0xff;
-    case 0x2: cpu->d = 0xff;
-    case 0x3: cpu->e = 0xff;
-    case 0x4: cpu->h = 0xff;
-    case 0x5: cpu->l = 0xff;
-    case 0x6: bus_write((((uint16_t)cpu->h) << 8 | (uint16_t)cpu->l), 0xff);
-    case 0x7: cpu->a = 0xff;
+    case 0x0: 
+      cpu->b = 0xff;
+      break;
+    case 0x1: 
+      cpu->c = 0xff;
+      break;
+    case 0x2: 
+      cpu->d = 0xff;
+      break;
+    case 0x3: 
+      cpu->e = 0xff;
+      break;
+    case 0x4: 
+      cpu->h = 0xff;
+      break;
+    case 0x5: 
+      cpu->l = 0xff;
+      break;
+    case 0x6: 
+      bus_write((((uint16_t)cpu->h) << 8 | (uint16_t)cpu->l), 0xff);
+      break;
+    case 0x7: 
+      cpu->a = 0xff;
+      break;
   }
   sm83_execute();
   bool res = *dest == 0xff;

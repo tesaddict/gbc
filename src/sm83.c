@@ -104,20 +104,18 @@ static inline int8_t signed_8(uint16_t address) {
 
 void sm83_execute() {
   const sm83_instr_t *instr = sm83_decode();
-  uint8_t cycle_offset = 0;
-  bool advance_pc = true;
+  uint8_t extra_cycles = 0;
+  int16_t pc_offset = instr->length;
   switch (instr->type) {
     case NOP:
       break;
     case JRS:
-      cpu.pc += signed_8(cpu.pc+1);
-      advance_pc = false;
+      pc_offset = signed_8(cpu.pc+1);
       break;
     case JRSCOND:
       if (sm83_check_condition(instr->cc)) {
-        cpu.pc += signed_8(cpu.pc+1);
-        cycle_offset = 4;
-        advance_pc = false;
+        pc_offset = signed_8(cpu.pc+1);
+        extra_cycles = 4;
       }
       break;
     case LDRDIR:
@@ -127,8 +125,8 @@ void sm83_execute() {
     case ERROR:
       break;
   }
-  if (advance_pc) cpu.pc += instr->length;
-  sm83_wait(instr->cycles + cycle_offset);
+  cpu.pc += pc_offset;
+  sm83_wait(instr->cycles + extra_cycles);
 }
 
 static uint8_t* sm83_get_register_map_ldr(uint16_t op) {
